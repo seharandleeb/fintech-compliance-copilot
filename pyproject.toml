@@ -1,0 +1,14 @@
+[project]
+name = "fintech-compliance-copilot"
+version = "0.1.0"
+description = "Production-ready FinTech Compliance Copilot using Retrieval-Augmented Generation (RAG)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = false
