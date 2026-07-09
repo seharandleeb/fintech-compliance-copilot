@@ -1,2 +1,32 @@
 # Ignore raw datasets
 data/raw/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+.venv/
+
+# Environment Variables
+.env
+
+# Logs
+logs/
+*.log
+
+# Dataset
+data/raw/
+
+# ChromaDB
+vectorstore/
+
+# VS Code
+.vscode/
+
+# Pytest
+.pytest_cache/
+
+# OS Files
+.DS_Store
+Thumbs.db
