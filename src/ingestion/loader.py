@@ -1,32 +1,48 @@
 """
 Data Loader for ObliQA Dataset.
 
-This module loads the raw ObliQA JSON dataset and converts each
-record into a LangChain Document object.
-
-Output:
-    List[Document]
+This module loads the ObliQA JSON dataset using LangChain JSONLoader
+and converts each record into LangChain Documents.
 """
 
-from pathlib import Path
+import json
 
+from langchain_community.document_loaders import JSONLoader
 from langchain_core.documents import Document
 
 from config.logging_config import logger
 from config.settings import get_settings
 
-
 settings = get_settings()
+
+
+def metadata_func(record: dict, metadata: dict) -> dict:
+    """
+    Extract metadata from each JSON record.
+    """
+
+    metadata["question_id"] = record.get("QuestionID")
+
+    metadata["document_ids"] = [
+        p.get("DocumentID")
+        for p in record.get("Passages", [])
+    ]
+
+    metadata["passage_ids"] = [
+        p.get("PassageID")
+        for p in record.get("Passages", [])
+    ]
+
+    metadata["num_passages"] = len(
+        record.get("Passages", [])
+    )
+
+    return metadata
 
 
 def load_obliqa_documents() -> list[Document]:
     """
-    Load the ObliQA dataset and convert it into LangChain Documents.
-
-    Returns
-    -------
-    list[Document]
-        List of LangChain Document objects.
+    Load ObliQA dataset using LangChain JSONLoader.
     """
 
     dataset_path = settings.dataset_path
@@ -36,24 +52,29 @@ def load_obliqa_documents() -> list[Document]:
             f"Dataset not found: {dataset_path}"
         )
 
-    logger.info("Loading dataset...")
+    logger.info("Loading dataset using JSONLoader...")
 
-    import json
+    loader = JSONLoader(
+        file_path=str(dataset_path),
+        jq_schema=".[]",
+        text_content=False,
+        metadata_func=metadata_func,
+    )
 
-    with open(dataset_path, "r", encoding="utf-8") as file:
-        data = json.load(file)
+    raw_documents = loader.load()
 
     documents = []
 
-    for record in data:
+    for doc in raw_documents:
+
+        # JSONLoader returns page_content as JSON string
+        record = json.loads(doc.page_content)
 
         question = record["Question"]
 
-        passages = record["Passages"]
-
         answer = "\n\n".join(
             passage["Passage"]
-            for passage in passages
+            for passage in record["Passages"]
         )
 
         page_content = (
@@ -61,23 +82,10 @@ def load_obliqa_documents() -> list[Document]:
             f"Answer:\n{answer}"
         )
 
-        metadata = {
-            "question_id": record["QuestionID"],
-            "document_ids": [
-                passage["DocumentID"]
-                for passage in passages
-            ],
-            "passage_ids": [
-                passage["PassageID"]
-                for passage in passages
-            ],
-            "num_passages": len(passages),
-        }
-
         documents.append(
             Document(
                 page_content=page_content,
-                metadata=metadata,
+                metadata=doc.metadata,
             )
         )
 
@@ -98,6 +106,6 @@ if __name__ == "__main__":
 
     print(docs[0].page_content[:700])
 
-    print("\nMetadata:\n")
+    print("\nMetadata\n")
 
     print(docs[0].metadata)
